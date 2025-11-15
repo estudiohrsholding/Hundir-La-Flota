@@ -1,38 +1,68 @@
 # constants.py
 
-# Board size
+# ==============================================================================
+# --- GENERALES ---
+# ==============================================================================
 TAMANO_TABLERO = 10
 
-# Ship list (sizes)
-LISTA_BARCOS = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
+# La lista de barcos ahora es una lista de tuplas (eslora, nombre)
+# para poder cargar los assets correspondientes.
+LISTA_BARCOS = [
+    (5, 'portaaviones'),
+    (4, 'acorazado'),
+    (3, 'submarino'),
+    (3, 'destructor'),
+    (2, 'patrullero'),
+    (2, 'bote')
+]
 
-# Board markers (lo que se ve en el tablero)
-AGUA = "~"
-BARCO = "B"
-MARCADOR_IMPACTO = "X"
-MARCADOR_FALLO = "O"
-
-# Game statuses (lo que devuelven las funciones)
-ESTADO_IMPACTO = "IMPACTO"
+# ==============================================================================
+# --- ESTADOS DEL JUEGO ---
+# ==============================================================================
+# Estos estados son devueltos por `recibir_disparo` para comunicar el resultado.
 ESTADO_FALLO = "FALLO"
+ESTADO_IMPACTO = "IMPACTO"
 ESTADO_HUNDIDO = "HUNDIDO"
 ESTADO_REPETIDO = "REPETIDO"
 
-# --- GUI Constants ---
+# ==============================================================================
+# --- MARCADORES INTERNOS DE LA GRID (NO VISUALES) ---
+# ==============================================================================
+# La grid puede contener 'AGUA' o un objeto Barco.
+# Cuando se dispara, el estado de la celda puede cambiar a un marcador.
+AGUA = None
+MARCADOR_FALLO = "FALLO_MARCADO" # Marcador para un tiro fallado
+# El impacto se gestiona en el propio objeto Barco, no con un marcador en la grid.
 
-# RGB Colors
+# ==============================================================================
+# --- CONSTANTES GRÁFICAS (Pygame) ---
+# ==============================================================================
+
+# --- Colores ---
 COLOR_AGUA = (22, 100, 150)
-COLOR_BARCO = (139, 69, 19)
-COLOR_IMPACTO = (220, 20, 60)
-COLOR_FALLO = (211, 211, 211)
-COLOR_FONDO = (0, 0, 0) # Black
-COLOR_TEXTO = (255, 255, 255) # White
+COLOR_TEXTO = (255, 255, 255)
+COLOR_FONDO = (0, 0, 0)
 
-# Pixel Dimensions
-TAMANO_CELDA = 40
-MARGEN_CELDA = 5
+# --- Dimensiones ---
+TAMANO_CELDA = 40  # Ancho y alto de cada celda en píxeles
+MARGEN_CELDA = 5   # Espacio entre celdas en píxeles
+
+# Cálculo del tamaño total de un tablero en píxeles
 TAMANO_TABLERO_PX = TAMANO_TABLERO * (TAMANO_CELDA + MARGEN_CELDA)
 
-# Window Dimensions (calculado para dos tableros y márgenes)
-ANCHO_VENTANA = (2 * TAMANO_TABLERO_PX) + (3 * TAMANO_CELDA)
-ALTO_VENTANA = TAMANO_TABLERO_PX + (2 * TAMANO_CELDA)
+# Cálculo del tamaño de la ventana
+ANCHO_VENTANA = (2 * TAMANO_TABLERO_PX) + (3 * TAMANO_CELDA) # Dos tableros + margen central
+ALTO_VENTANA = TAMANO_TABLERO_PX + (2 * TAMANO_CELDA)      # Tablero + márgenes superior/inferior
+
+# --- Rutas de los Assets ---
+ASSETS = {
+    'agua': 'assets/images/agua.png',
+    'fallo': 'assets/images/fallo.png',
+    'impacto': 'assets/images/impacto.png',
+    'portaaviones': 'assets/images/portaaviones_h.png',
+    'acorazado': 'assets/images/acorazado_h.png',
+    'submarino': 'assets/images/submarino_h.png',
+    'destructor': 'assets/images/destructor_h.png',
+    'patrullero': 'assets/images/patrullero_h.png',
+    'bote': 'assets/images/bote_h.png'
+}

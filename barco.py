@@ -2,19 +2,20 @@
 
 class Barco:
     """
-    Representa un barco 'inteligente' que conoce su propia posición,
+    Representa un barco 'inteligente' que conoce su propio nombre, posición,
     orientación y estado.
     """
-    def __init__(self, eslora, x, y, orientacion):
+    def __init__(self, nombre, eslora, x, y, orientacion):
         """
-        Inicializa un barco con eslora, posición y orientación.
-
+        Inicializa un barco con nombre, eslora, posición y orientación.
         Args:
+            nombre (str): El nombre del tipo de barco (ej: 'portaaviones').
             eslora (int): El tamaño (longitud) del barco.
             x (int): La coordenada X de la proa (cabeza) del barco.
             y (int): La coordenada Y de la proa (cabeza) del barco.
             orientacion (str): "H" para horizontal, "V" para vertical.
         """
+        self.nombre = nombre
         self.eslora = eslora
         self.x = x
         self.y = y
@@ -38,15 +39,11 @@ class Barco:
 
     def get_parte_en_coordenada(self, cx, cy):
         """
-        Determina qué parte del barco (proa, popa, cuerpo) se encuentra
+        Determina qué parte del barco (cabeza, cuerpo, cola) se encuentra
         en una coordenada específica.
 
-        Args:
-            cx (int): Coordenada X a verificar.
-            cy (int): Coordenada Y a verificar.
-
         Returns:
-            str: "PROA", "POPA", "CUERPO", "UNICO", o None si el barco no está en (cx, cy).
+            str: "CABEZA", "CUERPO", "COLA", "UNICO", o None.
         """
         if (cx, cy) not in self.coordenadas:
             return None
@@ -54,18 +51,18 @@ class Barco:
         if self.eslora == 1:
             return "UNICO"
 
-        idx = -1
-        if self.orientacion == "H":
-            idx = cx - self.x
-        else: # "V"
-            idx = cy - self.y
+        try:
+            # La posición en la lista de coordenadas nos da el índice
+            idx = self.coordenadas.index((cx, cy))
+            if idx == 0:
+                return "CABEZA"
+            elif idx == self.eslora - 1:
+                return "COLA"
+            else:
+                return "CUERPO"
+        except ValueError:
+            return None
 
-        if idx == 0:
-            return "PROA"
-        elif idx == self.eslora - 1:
-            return "POPA"
-        else:
-            return "CUERPO"
 
     def recibir_impacto(self, x, y):
         """
@@ -79,8 +76,5 @@ class Barco:
     def esta_hundido(self):
         """
         Verifica si el barco ha sido completamente hundido.
-
-        Returns:
-            bool: True si el número de impactos es igual a la eslora, False en caso contrario.
         """
         return len(self.impactos) == self.eslora
