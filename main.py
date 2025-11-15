@@ -19,16 +19,11 @@ class Juego:
         pygame.display.set_caption("Batalla Naval")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
-
         self.offset_jugador = (TAMANO_CELDA, TAMANO_CELDA)
         self.offset_maquina = (TAMANO_TABLERO_PX + 2 * TAMANO_CELDA, TAMANO_CELDA)
 
         self.tablero_jugador = Tablero()
         self.tablero_maquina = Tablero()
-
-        # Cargar imágenes después de inicializar Pygame
-        self.tablero_jugador.cargar_imagenes()
-        self.tablero_maquina.cargar_imagenes()
 
         self.tablero_jugador.colocar_barcos_aleatorio()
         self.tablero_maquina.colocar_barcos_aleatorio()
@@ -43,16 +38,10 @@ class Juego:
     def _pixel_a_grid(self, pixel_x, pixel_y, offset_x, offset_y):
         """
         Convierte coordenadas de píxeles a coordenadas de la cuadrícula del tablero.
-        Devuelve (None, None) si el clic está fuera del tablero.
         """
-        # Comprobar si el clic está dentro del área del tablero (sin incluir los márgenes de celda finales)
-        board_area_width = self.tablero_maquina.tamano * (TAMANO_CELDA + MARGEN_CELDA) - MARGEN_CELDA
-        board_area_height = self.tablero_maquina.tamano * (TAMANO_CELDA + MARGEN_CELDA) - MARGEN_CELDA
+        if offset_x <= pixel_x < offset_x + TAMANO_TABLERO_PX and \
+           offset_y <= pixel_y < offset_y + TAMANO_TABLERO_PX:
 
-        if offset_x <= pixel_x < offset_x + board_area_width and \
-           offset_y <= pixel_y < offset_y + board_area_height:
-
-            # Calcular la celda basándose en el tamaño total de celda + margen
             grid_x = (pixel_x - offset_x) // (TAMANO_CELDA + MARGEN_CELDA)
             grid_y = (pixel_y - offset_y) // (TAMANO_CELDA + MARGEN_CELDA)
             return int(grid_x), int(grid_y)
@@ -75,19 +64,18 @@ class Juego:
 
                     if grid_x is not None:
                         resultado = self.tablero_maquina.recibir_disparo(grid_x, grid_y)
+                        if resultado == ESTADO_FALLO:
+                            self.mensaje = "¡Agua! Turno de la máquina."
+                            self.turno = "maquina"
+                        elif resultado == ESTADO_IMPACTO:
+                             self.mensaje = "¡Impacto! Dispara de nuevo."
+                        elif resultado == ESTADO_HUNDIDO:
+                             self.mensaje = "¡Hundido! Dispara de nuevo."
+                        # Si es REPETIDO, no hacemos nada y dejamos que dispare de nuevo.
 
-                        if resultado != ESTADO_REPETIDO:
-                            if resultado == ESTADO_FALLO:
-                                self.mensaje = "¡Agua! Turno de la máquina."
-                                self.turno = "maquina"
-                            elif resultado == ESTADO_IMPACTO:
-                                self.mensaje = "¡Impacto! Dispara de nuevo."
-                            elif resultado == ESTADO_HUNDIDO:
-                                self.mensaje = "¡Hundido! Dispara de nuevo."
-
-                            if self.tablero_maquina.todos_hundidos():
-                                self.mensaje = "¡FELICIDADES! ¡HAS GANADO!"
-                                self.game_over = True
+                        if self.tablero_maquina.todos_hundidos():
+                            self.mensaje = "¡FELICIDADES! ¡HAS GANADO!"
+                            self.game_over = True
 
             # --- Turno de la Máquina ---
             if not self.game_over and self.turno == "maquina":
@@ -97,22 +85,28 @@ class Juego:
                 if resultado_ia == ESTADO_FALLO:
                     self.mensaje = "La máquina falló. Tu turno."
                     self.turno = "humano"
-                elif resultado_ia != ESTADO_REPETIDO: # Impacto o Hundido
+                elif resultado_ia == ESTADO_REPETIDO:
+                    pass
+                else: # Impacto o Hundido
                     self.mensaje = "La máquina ha acertado. Sigue la máquina."
 
                 if self.tablero_jugador.todos_hundidos():
                     self.mensaje = "¡LO SIENTO! LA MÁQUINA HA GANADO."
                     self.game_over = True
-                # Si es REPETIDO, el turno no cambia y la máquina vuelve a disparar
 
             # --- Dibujado ---
             self.screen.fill(COLOR_FONDO)
+
+            # Dibujar tableros
             self.tablero_jugador.mostrar(self.screen, self.offset_jugador[0], self.offset_jugador[1])
             self.tablero_maquina.mostrar(self.screen, self.offset_maquina[0], self.offset_maquina[1], ocultar_barcos=True)
+
+            # Dibujar mensajes
             texto = self.font.render(self.mensaje, True, COLOR_TEXTO)
             self.screen.blit(texto, (20, ALTO_VENTANA - 40))
+
             pygame.display.flip()
-            self.clock.tick(60)
+            self.clock.tick(60) # 60 FPS
 
         pygame.quit()
         sys.exit()

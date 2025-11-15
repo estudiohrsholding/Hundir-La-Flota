@@ -1,4 +1,8 @@
 # constants.py
+import os
+
+# Get the absolute path of the directory containing this file (constants.py)
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ==============================================================================
 # --- GENERALES ---
@@ -37,15 +41,15 @@ ALTO_VENTANA = TAMANO_TABLERO_PX + (2 * TAMANO_CELDA)
 
 # --- Rutas de los Assets ---
 ASSETS = {
-    'agua': 'assets/images/Agua.png',
-    'fallo': 'assets/images/fail_shoot.png',
-    'impacto': 'assets/images/well_shoot.png',
-    'barco_6': 'assets/images/piezas_6.png',
-    'barco_5': 'assets/images/piezas_5.png',
-    'barco_4': 'assets/images/piezas_4.png',
-    'barco_3': 'assets/images/piezas_3.png',
-    'barco_2': 'assets/images/piezas_2.png',
-    'barco_1': 'assets/images/piezas_1.png'
+    'agua': os.path.join(_BASE_DIR, 'assets', 'images', 'Agua.png'),
+    'fallo': os.path.join(_BASE_DIR, 'assets', 'images', 'fail_shoot.png'),
+    'impacto': os.path.join(_BASE_DIR, 'assets', 'images', 'well_shoot.png'),
+    'barco_6': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_6.png'),
+    'barco_5': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_5.png'),
+    'barco_4': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_4.png'),
+    'barco_3': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_3.png'),
+    'barco_2': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_2.png'),
+    'barco_1': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_1.png')
 }
 
 # La lista de barcos ahora es una lista de tuplas (nombre, eslora)
