@@ -19,6 +19,8 @@ class Juego:
         pygame.display.set_caption("Batalla Naval")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
+        self.offset_jugador = (TAMANO_CELDA, TAMANO_CELDA)
+        self.offset_maquina = (TAMANO_TABLERO_PX + 2 * TAMANO_CELDA, TAMANO_CELDA)
 
         self.tablero_jugador = Tablero()
         self.tablero_maquina = Tablero()
@@ -28,11 +30,6 @@ class Juego:
 
         self.jugador_humano = JugadorHumano("Jugador", self.tablero_jugador, self.tablero_maquina)
         self.jugador_maquina = JugadorMaquina("Máquina", self.tablero_maquina, self.tablero_jugador)
-
-        # Offsets para dibujar los tableros
-        self.offset_jugador_x = TAMANO_CELDA
-        self.offset_tableros_y = TAMANO_CELDA
-        self.offset_maquina_x = self.offset_jugador_x + TAMANO_TABLERO_PX + TAMANO_CELDA
 
         self.turno = "humano"
         self.game_over = False
@@ -63,7 +60,7 @@ class Juego:
 
                 if not self.game_over and self.turno == "humano" and event.type == pygame.MOUSEBUTTONDOWN:
                     pixel_x, pixel_y = pygame.mouse.get_pos()
-                    grid_x, grid_y = self._pixel_a_grid(pixel_x, pixel_y, self.offset_maquina_x, self.offset_tableros_y)
+                    grid_x, grid_y = self._pixel_a_grid(pixel_x, pixel_y, self.offset_maquina[0], self.offset_maquina[1])
 
                     if grid_x is not None:
                         resultado = self.tablero_maquina.recibir_disparo(grid_x, grid_y)
@@ -89,12 +86,9 @@ class Juego:
                     self.mensaje = "La máquina falló. Tu turno."
                     self.turno = "humano"
                 elif resultado_ia == ESTADO_REPETIDO:
-                    # Este caso es improbable pero posible si la IA es muy básica.
-                    # Simplemente dejamos que la IA lo intente de nuevo en el siguiente ciclo.
                     pass
                 else: # Impacto o Hundido
                     self.mensaje = "La máquina ha acertado. Sigue la máquina."
-                    # No cambiamos de turno
 
                 if self.tablero_jugador.todos_hundidos():
                     self.mensaje = "¡LO SIENTO! LA MÁQUINA HA GANADO."
@@ -104,8 +98,8 @@ class Juego:
             self.screen.fill(COLOR_FONDO)
 
             # Dibujar tableros
-            self.tablero_jugador.mostrar(self.screen, offset_x=self.offset_jugador_x, offset_y=self.offset_tableros_y)
-            self.tablero_maquina.mostrar(self.screen, offset_x=self.offset_maquina_x, offset_y=self.offset_tableros_y, ocultar_barcos=True)
+            self.tablero_jugador.mostrar(self.screen, self.offset_jugador[0], self.offset_jugador[1])
+            self.tablero_maquina.mostrar(self.screen, self.offset_maquina[0], self.offset_maquina[1], ocultar_barcos=True)
 
             # Dibujar mensajes
             texto = self.font.render(self.mensaje, True, COLOR_TEXTO)

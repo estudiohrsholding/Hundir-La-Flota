@@ -24,8 +24,6 @@ class JugadorHumano(Jugador):
     def __init__(self, nombre, mi_tablero, tablero_oponente):
         super().__init__(nombre, mi_tablero, tablero_oponente)
 
-    # El método disparar() se ha eliminado. La entrada del jugador
-    # se gestionará a través de eventos de clic del ratón en main.py.
 
 class JugadorMaquina(Jugador):
     """
@@ -37,7 +35,7 @@ class JugadorMaquina(Jugador):
         Inicializa la máquina y un conjunto para recordar los disparos realizados.
         """
         super().__init__(nombre, mi_tablero, tablero_oponente)
-        self.disparos_realizados = set()
+        self.disparos_previos = set()
 
     def disparar(self):
         """
@@ -48,8 +46,8 @@ class JugadorMaquina(Jugador):
             x = random.randint(0, TAMANO_TABLERO - 1)
             y = random.randint(0, TAMANO_TABLERO - 1)
 
-            if (x, y) not in self.disparos_realizados:
-                self.disparos_realizados.add((x, y))
+            if (x, y) not in self.disparos_previos:
+                self.disparos_previos.add((x, y))
                 # El resultado del disparo se devuelve para que el bucle principal
                 # pueda gestionar el estado del juego.
                 return self.tablero_oponente.recibir_disparo(x, y)
