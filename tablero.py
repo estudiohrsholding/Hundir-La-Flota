@@ -1,16 +1,14 @@
 # tablero.py
 
 import random
-from constants import (TAMANO_TABLERO, AGUA, BARCO,
-                       MARCADOR_IMPACTO, MARCADOR_FALLO,
-                       ESTADO_IMPACTO, ESTADO_FALLO, ESTADO_HUNDIDO, ESTADO_REPETIDO,
-                       ROJO, AZUL, VERDE, RESET)
+import pygame
+from constants import *
 from barco import Barco
 
 class Tablero:
     """
     Gestiona el tablero de juego, incluyendo la colocación de barcos,
-    la recepción de disparos y la visualización del estado.
+    la recepción de disparos y ahora, el dibujado del tablero en una superficie de Pygame.
     """
     def __init__(self, tamano=TAMANO_TABLERO):
         self.tamano = tamano
@@ -75,24 +73,30 @@ class Tablero:
                     return ESTADO_IMPACTO
         return "ERROR"
 
-    def mostrar(self, ocultar_barcos=False, color=None):
-        color_final = color if color else ""
-        print(f"{color_final}  {' '.join(map(str, range(self.tamano)))}{RESET}")
+    def mostrar(self, surface, offset_x=0, offset_y=0, ocultar_barcos=False):
+        """
+        Dibuja el estado actual del tablero en una superficie de Pygame.
+        """
+        for y, fila in enumerate(self.grid):
+            for x, celda in enumerate(fila):
+                rect_x = offset_x + x * (TAMANO_CELDA + MARGEN_CELDA)
+                rect_y = offset_y + y * (TAMANO_CELDA + MARGEN_CELDA)
 
-        for i, fila in enumerate(self.grid):
-            linea_mostrada = f"{color_final}{i} "
-            for celda in fila:
-                if ocultar_barcos and celda == BARCO:
-                    linea_mostrada += f"{AGUA} "
-                elif celda == MARCADOR_IMPACTO:
-                    linea_mostrada += f"{ROJO}{MARCADOR_IMPACTO}{RESET}{color_final} "
+                color = COLOR_AGUA # Color por defecto
+
+                if celda == AGUA:
+                    color = COLOR_AGUA
                 elif celda == MARCADOR_FALLO:
-                    linea_mostrada += f"{AZUL}{MARCADOR_FALLO}{RESET}{color_final} "
+                    color = COLOR_FALLO
+                elif celda == MARCADOR_IMPACTO:
+                    color = COLOR_IMPACTO
                 elif celda == BARCO:
-                     linea_mostrada += f"{VERDE}{BARCO}{RESET}{color_final} "
-                else:
-                    linea_mostrada += f"{celda} "
-            print(f"{linea_mostrada.strip()}{RESET}")
+                    if ocultar_barcos:
+                        color = COLOR_AGUA
+                    else:
+                        color = COLOR_BARCO
+
+                pygame.draw.rect(surface, color, (rect_x, rect_y, TAMANO_CELDA, TAMANO_CELDA))
 
     def todos_hundidos(self):
         return all(barco.esta_hundido() for barco in self.barcos)

@@ -1,18 +1,25 @@
 # main.py
 
+import pygame
+import sys
 from tablero import Tablero
 from jugador import JugadorHumano, JugadorMaquina
-from constants import (LISTA_BARCOS, VERDE, ROJO, AZUL, RESET,
-                       ESTADO_IMPACTO, ESTADO_HUNDIDO, ESTADO_FALLO, ESTADO_REPETIDO)
+from constants import *
 
 class Juego:
     """
-    Clase principal que orquesta la partida de Batalla Naval.
+    Clase principal que orquesta la partida de Batalla Naval con una GUI de Pygame.
     """
     def __init__(self):
         """
-        Inicializa el juego, creando los tableros y los jugadores.
+        Inicializa Pygame, la ventana del juego, los tableros y los jugadores.
         """
+        pygame.init()
+        self.screen = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
+        pygame.display.set_caption("Batalla Naval")
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 36)
+
         self.tablero_jugador = Tablero()
         self.tablero_maquina = Tablero()
 
@@ -22,64 +29,93 @@ class Juego:
         self.jugador_humano = JugadorHumano("Jugador", self.tablero_jugador, self.tablero_maquina)
         self.jugador_maquina = JugadorMaquina("Máquina", self.tablero_maquina, self.tablero_jugador)
 
-    def _mostrar_estado(self):
-        """
-        Muestra los tableros del jugador y de la máquina.
-        """
-        print("\\n" + "="*30)
-        print("TU TABLERO (Tus barcos, tus fallos, impactos recibidos)")
-        self.tablero_jugador.mostrar(color=VERDE)
+        self.turno = "humano"
+        self.game_over = False
+        self.mensaje = ""
 
-        print("\\nTABLERO ENEMIGO (Tus impactos y fallos)")
-        self.tablero_maquina.mostrar(ocultar_barcos=True, color=AZUL)
-        print("="*30)
+    def _pixel_a_grid(self, pixel_x, pixel_y, offset_x, offset_y):
+        """
+        Convierte coordenadas de píxeles a coordenadas de la cuadrícula del tablero.
+        """
+        if offset_x <= pixel_x < offset_x + TAMANO_TABLERO_PX and \
+           offset_y <= pixel_y < offset_y + TAMANO_TABLERO_PX:
+
+            grid_x = (pixel_x - offset_x) // (TAMANO_CELDA + MARGEN_CELDA)
+            grid_y = (pixel_y - offset_y) // (TAMANO_CELDA + MARGEN_CELDA)
+            return int(grid_x), int(grid_y)
+        return None, None
 
     def run(self):
         """
-        Contiene el bucle principal del juego.
+        Contiene el bucle principal del juego, manejando eventos, actualizaciones y renderizado.
         """
-        turno_jugador = True
+        offset_jugador_x = TAMANO_CELDA
+        offset_tableros_y = TAMANO_CELDA
+        offset_maquina_x = offset_jugador_x + TAMANO_TABLERO_PX + TAMANO_CELDA
 
-        while True:
-            self._mostrar_estado()
+        while not self.game_over:
+            # --- Manejo de Eventos ---
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
 
-            if turno_jugador:
-                print(f"\\n{VERDE}--- TU TURNO ---{RESET}")
-                resultado = self.jugador_humano.disparar()
+                if self.turno == "humano" and event.type == pygame.MOUSEBUTTONDOWN:
+                    pixel_x, pixel_y = pygame.mouse.get_pos()
+                    grid_x, grid_y = self._pixel_a_grid(pixel_x, pixel_y, offset_maquina_x, offset_tableros_y)
 
-                if resultado == ESTADO_IMPACTO:
-                    print(f"{ROJO}¡Impacto!{RESET} Sigues tú.")
-                elif resultado == ESTADO_HUNDIDO:
-                    print(f"{ROJO}¡Hundido!{RESET} ¡Excelente! Sigues tú.")
-                elif resultado == ESTADO_FALLO:
-                    print(f"{AZUL}¡Agua!{RESET} Turno de la máquina.")
-                    turno_jugador = False
-                elif resultado == ESTADO_REPETIDO:
-                    print("Ya habías disparado ahí. Inténtalo de nuevo.")
+                    if grid_x is not None:
+                        resultado = self.tablero_maquina.recibir_disparo(grid_x, grid_y)
+                        if resultado == ESTADO_FALLO:
+                            self.mensaje = "¡Agua! Turno de la máquina."
+                            self.turno = "maquina"
+                        elif resultado == ESTADO_IMPACTO:
+                             self.mensaje = "¡Impacto! Dispara de nuevo."
+                        elif resultado == ESTADO_HUNDIDO:
+                             self.mensaje = "¡Hundido! Dispara de nuevo."
 
-                if self.tablero_maquina.todos_hundidos():
-                    print("\\n¡FELICIDADES! ¡HAS GANADO LA PARTIDA!")
-                    self.tablero_maquina.mostrar(color=VERDE)
-                    break
+                        if self.tablero_maquina.todos_hundidos():
+                            self.mensaje = "¡FELICIDADES! ¡HAS GANADO!"
+                            self.game_over = True
 
-            else: # Turno de la máquina
-                print(f"\\n{ROJO}--- TURNO DE LA MÁQUINA ---{RESET}")
-                resultado = self.jugador_maquina.disparar()
 
-                if resultado == ESTADO_IMPACTO:
-                    print(f"{ROJO}¡La máquina ha impactado uno de tus barcos!{RESET} Sigue la máquina.")
-                elif resultado == ESTADO_HUNDIDO:
-                    print(f"{ROJO}¡La máquina ha hundido uno de tus barcos!{RESET} Sigue la máquina.")
-                elif resultado == ESTADO_FALLO:
-                    print(f"{AZUL}¡La máquina ha disparado al agua!{RESET} Tu turno.")
-                    turno_jugador = True
+            # --- Turno de la Máquina ---
+            if not self.game_over and self.turno == "maquina":
+                pygame.time.wait(500) # Pausa para simular pensamiento
+                resultado_ia = self.jugador_maquina.disparar()
+
+                if resultado_ia == ESTADO_FALLO:
+                    self.mensaje = "La máquina falló. Tu turno."
+                    self.turno = "humano"
+                else: # Impacto o Hundido
+                    self.mensaje = "La máquina ha acertado. Sigue la máquina."
 
                 if self.tablero_jugador.todos_hundidos():
-                    print("\\n¡LO SIENTO! LA MÁQUINA HA GANADO.")
-                    self.tablero_jugador.mostrar(color=ROJO)
-                    break
+                    self.mensaje = "¡LO SIENTO! LA MÁQUINA HA GANADO."
+                    self.game_over = True
+
+
+            # --- Dibujado ---
+            self.screen.fill(COLOR_FONDO)
+
+            # Dibujar tableros
+            self.tablero_jugador.mostrar(self.screen, offset_x=offset_jugador_x, offset_y=offset_tableros_y)
+            self.tablero_maquina.mostrar(self.screen, offset_x=offset_maquina_x, offset_y=offset_tableros_y, ocultar_barcos=True)
+
+            # Dibujar mensajes
+            texto = self.font.render(self.mensaje, True, COLOR_TEXTO)
+            self.screen.blit(texto, (20, ALTO_VENTANA - 40))
+
+            pygame.display.flip()
+            self.clock.tick(30) # 30 FPS
+
+        # Bucle final para mostrar el resultado
+        while True:
+             for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
 
 if __name__ == "__main__":
-    print("¡Bienvenido a Batalla Naval!")
     juego = Juego()
     juego.run()
