@@ -7,8 +7,8 @@ Para ejecutar este proyecto, no solo necesitas descargar el c√≥digo, sino tambi√
 1. Clonar el Repositorio
 Bash
 
-git clone https://github.com/estudiohrsholding/batalla-naval-proyecto.git
-cd batalla-naval-proyecto
+git clone https://github.com/estudiohrsholding/batalla-naval-proyecto.git |
+ cd batalla-naval-proyecto
 (Reemplaza la URL si la de tu repositorio es diferente)
 
 2. Crear y Activar un Entorno Virtual
