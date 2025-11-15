@@ -46,7 +46,7 @@ ASSETS = {
     'impacto': os.path.join(_BASE_DIR, 'assets', 'images', 'well_shoot.png'),
     'barco_6': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_6.png'),
     'barco_5': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_5.png'),
-    'barco_4': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_4.png'),
+    'barco_4': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas4.png'),
     'barco_3': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_3.png'),
     'barco_2': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_2.png'),
     'barco_1': os.path.join(_BASE_DIR, 'assets', 'images', 'piezas_1.png')
