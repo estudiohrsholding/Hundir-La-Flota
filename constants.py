@@ -17,7 +17,7 @@ ESTADO_REPETIDO = "REPETIDO"
 # --- MARCADORES INTERNOS DE LA GRID (NO VISUALES) ---
 # ==============================================================================
 AGUA = None
-MARCADOR_FALLO = "FALLO_MARCADO"
+MARCADOR_FALLO = "FALLO_MARCADO" # Usado internamente, la vista usará el sprite 'fallo'
 
 # ==============================================================================
 # --- CONSTANTES GRÁFICAS (Pygame) ---

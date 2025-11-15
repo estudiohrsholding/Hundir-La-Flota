@@ -14,15 +14,14 @@ class Tablero:
         self.tamano = tamano
         self.grid = [[AGUA for _ in range(tamano)] for _ in range(tamano)]
         self.barcos = []
-        self._cargar_imagenes()
-
-    def _cargar_imagenes(self):
-        """
-        Carga, escala y rota todas las imágenes necesarias para el juego.
-        Este método es privado y se llama solo una vez desde __init__.
-        """
+        # Es importante cargar las imágenes DESPUÉS de inicializar pygame en la clase Juego
         self.imagenes = {}
 
+    def cargar_imagenes(self):
+        """
+        Carga, escala y rota todas las imágenes necesarias para el juego.
+        Este método DEBE llamarse después de pygame.init().
+        """
         # Cargar imágenes de celdas básicas
         for asset_name in ['agua', 'fallo', 'impacto']:
             img = pygame.image.load(ASSETS[asset_name]).convert_alpha()
@@ -44,14 +43,17 @@ class Tablero:
             coords = [(x, y + i) for i in range(barco.eslora)]
 
         for cx, cy in coords:
+            # Comprobación de límites (aunque ya se hizo antes, es una doble seguridad)
+            if not (0 <= cx < self.tamano and 0 <= cy < self.tamano):
+                return False
+            # Comprobación de superposición y adyacencia
             for i in range(-1, 2):
                 for j in range(-1, 2):
                     nx, ny = cx + j, cy + i
                     if 0 <= nx < self.tamano and 0 <= ny < self.tamano:
-                        if self.grid[ny][nx] != AGUA:
+                        if self.grid[ny][nx] is not None:
                             return False
         return True
-
 
     def colocar_barcos_aleatorio(self):
         """
@@ -72,13 +74,12 @@ class Tablero:
                         for i in range(eslora):
                             self.grid[y][x+i] = barco
                             barco.posicion.append((x+i, y))
-                    else:
+                    else: # 'v'
                         for i in range(eslora):
                             self.grid[y+i][x] = barco
                             barco.posicion.append((x, y+i))
                     self.barcos.append(barco)
                     colocado = True
-
 
     def recibir_disparo(self, x, y):
         celda = self.grid[y][x]
@@ -88,13 +89,18 @@ class Tablero:
                 return ESTADO_REPETIDO
 
             barco.recibir_impacto(x, y)
+            # Después del impacto, comprobamos si está hundido
             if barco.esta_hundido():
+                # Marcar todas las partes del barco como hundidas
+                for pos_x, pos_y in barco.posicion:
+                    # Esto es más un cambio de estado lógico que visual
+                    pass
                 return ESTADO_HUNDIDO
             return ESTADO_IMPACTO
-        elif celda == AGUA:
+        elif celda is None: # AGUA
             self.grid[y][x] = MARCADOR_FALLO
             return ESTADO_FALLO
-        else: # Ya era MARCADOR_FALLO
+        else: # Ya era MARCADOR_FALLO o algo más
             return ESTADO_REPETIDO
 
     def mostrar(self, surface, offset_x=0, offset_y=0, ocultar_barcos=False):
@@ -112,25 +118,32 @@ class Tablero:
                     surface.blit(self.imagenes['fallo'], (rect_x, rect_y))
                 elif isinstance(celda, Barco):
                     barco = celda
-                    if ocultar_barcos:
-                        if (x, y) in barco.impactos:
-                            surface.blit(self.imagenes['impacto'], (rect_x, rect_y))
-                        else:
-                            surface.blit(self.imagenes['agua'], (rect_x, rect_y))
+                    # Determinar si mostrar el barco o agua (si está oculto)
+                    if ocultar_barcos and (x, y) not in barco.impactos:
+                        surface.blit(self.imagenes['agua'], (rect_x, rect_y))
                     else:
-                        # --- Sprite Slicing Logic ---
-                        parte = celda.get_parte_en_coord(x, y)
-                        orient = celda.orientacion.lower()
-                        sprite_sheet = self.imagenes[f"{celda.nombre}_{orient}"]
-                        # Calculate which slice (subsurface) to cut based on 'parte' and 'orientacion'
-                        slice_index = celda.posicion.index((x,y))
-                        if orient == 'h':
-                            slice_rect = pygame.Rect(slice_index * TAMANO_CELDA, 0, TAMANO_CELDA, TAMANO_CELDA)
-                        else: # 'v'
-                            slice_rect = pygame.Rect(0, slice_index * TAMANO_CELDA, TAMANO_CELDA, TAMANO_CELDA)
-                        surface.blit(sprite_sheet, (rect_x, rect_y), slice_rect)
-                        if (x, y) in barco.impactos:
-                            surface.blit(self.imagenes['impacto'], (rect_x, rect_y))
+                        # --- Lógica de Sprite Slicing ---
+                        try:
+                            orient = barco.orientacion.lower()
+                            sprite_sheet = self.imagenes[f"{barco.nombre}_{orient}"]
+                            slice_index = barco.posicion.index((x,y))
+
+                            if orient == 'h':
+                                slice_rect = pygame.Rect(slice_index * TAMANO_CELDA, 0, TAMANO_CELDA, TAMANO_CELDA)
+                            else: # 'v'
+                                # En vertical, el ancho es el mismo, pero el origen Y cambia
+                                slice_rect = pygame.Rect(0, slice_index * TAMANO_CELDA, TAMANO_CELDA, TAMANO_CELDA)
+
+                            surface.blit(sprite_sheet, (rect_x, rect_y), slice_rect)
+
+                        except (KeyError, ValueError) as e:
+                            # Error: no se encontró el sprite o la posición. Dibujar agua como fallback.
+                            surface.blit(self.imagenes['agua'], (rect_x, rect_y))
+                            print(f"Error al dibujar barco: {e}")
+
+                    # Dibujar impacto encima si la celda ha sido impactada
+                    if (x, y) in barco.impactos:
+                        surface.blit(self.imagenes['impacto'], (rect_x, rect_y))
 
     def todos_hundidos(self):
         return all(barco.esta_hundido() for barco in self.barcos)

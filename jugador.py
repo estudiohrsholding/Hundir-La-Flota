@@ -23,6 +23,8 @@ class JugadorHumano(Jugador):
     """
     def __init__(self, nombre, mi_tablero, tablero_oponente):
         super().__init__(nombre, mi_tablero, tablero_oponente)
+    # El método disparar() se ha eliminado. La entrada del jugador se maneja
+    # a través de eventos de clic en el bucle principal de main.py.
 
 
 class JugadorMaquina(Jugador):
