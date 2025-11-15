@@ -1,7 +1,7 @@
 # jugador.py
 
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 from constants import TAMANO_TABLERO
 
 class Jugador(ABC):
@@ -24,11 +24,13 @@ class JugadorHumano(Jugador):
     def __init__(self, nombre, mi_tablero, tablero_oponente):
         super().__init__(nombre, mi_tablero, tablero_oponente)
 
-    # El método disparar() se ha eliminado.
+    # El método disparar() se ha eliminado. La entrada del jugador
+    # se gestionará a través de eventos de clic del ratón en main.py.
 
 class JugadorMaquina(Jugador):
     """
-    Representa a un jugador máquina (IA) que dispara aleatoriamente.
+    Representa a un jugador máquina (IA) que dispara aleatoriamente
+    y de forma silenciosa.
     """
     def __init__(self, nombre, mi_tablero, tablero_oponente):
         """
@@ -48,5 +50,6 @@ class JugadorMaquina(Jugador):
 
             if (x, y) not in self.disparos_realizados:
                 self.disparos_realizados.add((x, y))
-                # El print() se ha eliminado.
+                # El resultado del disparo se devuelve para que el bucle principal
+                # pueda gestionar el estado del juego.
                 return self.tablero_oponente.recibir_disparo(x, y)

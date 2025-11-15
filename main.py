@@ -23,15 +23,20 @@ class Juego:
         self.tablero_jugador = Tablero()
         self.tablero_maquina = Tablero()
 
-        self.tablero_jugador.colocar_barcos_aleatorio(LISTA_BARCOS)
-        self.tablero_maquina.colocar_barcos_aleatorio(LISTA_BARCOS)
+        self.tablero_jugador.colocar_barcos_aleatorio()
+        self.tablero_maquina.colocar_barcos_aleatorio()
 
         self.jugador_humano = JugadorHumano("Jugador", self.tablero_jugador, self.tablero_maquina)
         self.jugador_maquina = JugadorMaquina("Máquina", self.tablero_maquina, self.tablero_jugador)
 
+        # Offsets para dibujar los tableros
+        self.offset_jugador_x = TAMANO_CELDA
+        self.offset_tableros_y = TAMANO_CELDA
+        self.offset_maquina_x = self.offset_jugador_x + TAMANO_TABLERO_PX + TAMANO_CELDA
+
         self.turno = "humano"
         self.game_over = False
-        self.mensaje = ""
+        self.mensaje = "¡Tu turno! Haz clic en el tablero derecho para disparar."
 
     def _pixel_a_grid(self, pixel_x, pixel_y, offset_x, offset_y):
         """
@@ -49,20 +54,16 @@ class Juego:
         """
         Contiene el bucle principal del juego, manejando eventos, actualizaciones y renderizado.
         """
-        offset_jugador_x = TAMANO_CELDA
-        offset_tableros_y = TAMANO_CELDA
-        offset_maquina_x = offset_jugador_x + TAMANO_TABLERO_PX + TAMANO_CELDA
-
-        while not self.game_over:
+        running = True
+        while running:
             # --- Manejo de Eventos ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    running = False
 
-                if self.turno == "humano" and event.type == pygame.MOUSEBUTTONDOWN:
+                if not self.game_over and self.turno == "humano" and event.type == pygame.MOUSEBUTTONDOWN:
                     pixel_x, pixel_y = pygame.mouse.get_pos()
-                    grid_x, grid_y = self._pixel_a_grid(pixel_x, pixel_y, offset_maquina_x, offset_tableros_y)
+                    grid_x, grid_y = self._pixel_a_grid(pixel_x, pixel_y, self.offset_maquina_x, self.offset_tableros_y)
 
                     if grid_x is not None:
                         resultado = self.tablero_maquina.recibir_disparo(grid_x, grid_y)
@@ -73,11 +74,11 @@ class Juego:
                              self.mensaje = "¡Impacto! Dispara de nuevo."
                         elif resultado == ESTADO_HUNDIDO:
                              self.mensaje = "¡Hundido! Dispara de nuevo."
+                        # Si es REPETIDO, no hacemos nada y dejamos que dispare de nuevo.
 
                         if self.tablero_maquina.todos_hundidos():
                             self.mensaje = "¡FELICIDADES! ¡HAS GANADO!"
                             self.game_over = True
-
 
             # --- Turno de la Máquina ---
             if not self.game_over and self.turno == "maquina":
@@ -87,34 +88,34 @@ class Juego:
                 if resultado_ia == ESTADO_FALLO:
                     self.mensaje = "La máquina falló. Tu turno."
                     self.turno = "humano"
+                elif resultado_ia == ESTADO_REPETIDO:
+                    # Este caso es improbable pero posible si la IA es muy básica.
+                    # Simplemente dejamos que la IA lo intente de nuevo en el siguiente ciclo.
+                    pass
                 else: # Impacto o Hundido
                     self.mensaje = "La máquina ha acertado. Sigue la máquina."
+                    # No cambiamos de turno
 
                 if self.tablero_jugador.todos_hundidos():
                     self.mensaje = "¡LO SIENTO! LA MÁQUINA HA GANADO."
                     self.game_over = True
 
-
             # --- Dibujado ---
             self.screen.fill(COLOR_FONDO)
 
             # Dibujar tableros
-            self.tablero_jugador.mostrar(self.screen, offset_x=offset_jugador_x, offset_y=offset_tableros_y)
-            self.tablero_maquina.mostrar(self.screen, offset_x=offset_maquina_x, offset_y=offset_tableros_y, ocultar_barcos=True)
+            self.tablero_jugador.mostrar(self.screen, offset_x=self.offset_jugador_x, offset_y=self.offset_tableros_y)
+            self.tablero_maquina.mostrar(self.screen, offset_x=self.offset_maquina_x, offset_y=self.offset_tableros_y, ocultar_barcos=True)
 
             # Dibujar mensajes
             texto = self.font.render(self.mensaje, True, COLOR_TEXTO)
             self.screen.blit(texto, (20, ALTO_VENTANA - 40))
 
             pygame.display.flip()
-            self.clock.tick(30) # 30 FPS
+            self.clock.tick(60) # 60 FPS
 
-        # Bucle final para mostrar el resultado
-        while True:
-             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        pygame.quit()
+        sys.exit()
 
 if __name__ == "__main__":
     juego = Juego()
