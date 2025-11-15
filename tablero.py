@@ -28,11 +28,39 @@ class Tablero:
             img = pygame.image.load(ASSETS[asset_name]).convert_alpha()
             self.imagenes[asset_name] = pygame.transform.scale(img, (TAMANO_CELDA, TAMANO_CELDA))
 
-        # Cargar, escalar y rotar imágenes de barcos
+        # Cargar, escalar y rotar imágenes de barcos respetando la relación de aspecto
         for nombre, eslora in LISTA_BARCOS:
-            img_h = pygame.image.load(ASSETS[nombre]).convert_alpha()
-            self.imagenes[f'{nombre}_h'] = pygame.transform.scale(img_h, (TAMANO_CELDA * eslora, TAMANO_CELDA))
-            self.imagenes[f'{nombre}_v'] = pygame.transform.rotate(self.imagenes[f'{nombre}_h'], 90)
+            img_original = pygame.image.load(ASSETS[nombre]).convert_alpha()
+            original_width, original_height = img_original.get_size()
+
+            # Calculate target size for each segment to fit within TAMANO_CELDA x TAMANO_CELDA
+            # while maintaining aspect ratio.
+            segment_original_width = original_width / eslora if eslora > 0 else original_width
+            segment_original_height = original_height
+
+            if segment_original_width == 0 or segment_original_height == 0:
+                # Handle cases where image has zero dimension to avoid division by zero or invalid scaling
+                new_segment_width = TAMANO_CELDA
+                new_segment_height = TAMANO_CELDA
+            else:
+                scale_factor_width = TAMANO_CELDA / segment_original_width
+                scale_factor_height = TAMANO_CELDA / segment_original_height
+                scale_factor = min(scale_factor_width, scale_factor_height)
+
+                new_segment_width = int(segment_original_width * scale_factor)
+                new_segment_height = int(segment_original_height * scale_factor)
+
+            # Ensure dimensions are at least 1 pixel to avoid issues with pygame.transform.scale
+            new_segment_width = max(1, new_segment_width)
+            new_segment_height = max(1, new_segment_height)
+
+            # Scale the entire ship image based on the calculated segment size
+            final_img_width = new_segment_width * eslora
+            final_img_height = new_segment_height
+
+            img_h = pygame.transform.scale(img_original, (final_img_width, final_img_height))
+            self.imagenes[f'{nombre}_h'] = img_h
+            self.imagenes[f'{nombre}_v'] = pygame.transform.rotate(img_h, 90)
 
     def _puede_colocar(self, barco, x, y, orientacion):
         coords = []
@@ -122,13 +150,28 @@ class Tablero:
                         parte = celda.get_parte_en_coord(x, y)
                         orient = celda.orientacion.lower()
                         sprite_sheet = self.imagenes[f"{celda.nombre}_{orient}"]
-                        # Calculate which slice (subsurface) to cut based on 'parte' and 'orientacion'
-                        slice_index = celda.posicion.index((x,y))
+                        # --- Sprite Slicing Logic ---
+                        slice_index = celda.posicion.index((x,y)) # Índice de la parte del barco en la sprite sheet
+
+                        # Obtener las dimensiones del segmento tal como se escaló en _cargar_imagenes
                         if orient == 'h':
-                            slice_rect = pygame.Rect(slice_index * TAMANO_CELDA, 0, TAMANO_CELDA, TAMANO_CELDA)
+                            segment_width = sprite_sheet.get_width() / celda.eslora
+                            segment_height = sprite_sheet.get_height()
+                            slice_rect = pygame.Rect(slice_index * segment_width, 0, segment_width, segment_height)
                         else: # 'v'
-                            slice_rect = pygame.Rect(0, slice_index * TAMANO_CELDA, TAMANO_CELDA, TAMANO_CELDA)
-                        surface.blit(sprite_sheet, (rect_x, rect_y), slice_rect)
+                            segment_width = sprite_sheet.get_width()
+                            segment_height = sprite_sheet.get_height() / celda.eslora
+                            slice_rect = pygame.Rect(0, slice_index * segment_height, segment_width, segment_height)
+
+                        # Ahora, centrar la pieza dentro de la celda de TAMANO_CELDA x TAMANO_CELDA
+                        target_rect = pygame.Rect(rect_x, rect_y, TAMANO_CELDA, TAMANO_CELDA)
+
+                        # Crear un rect para la imagen rebanada y centrarlo en la celda
+                        image_segment_rect = pygame.Rect(0, 0, segment_width, segment_height)
+                        image_segment_rect.center = target_rect.center
+
+                        surface.blit(sprite_sheet, image_segment_rect, slice_rect)
+
                         if (x, y) in barco.impactos:
                             surface.blit(self.imagenes['impacto'], (rect_x, rect_y))
 
