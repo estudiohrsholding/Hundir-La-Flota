@@ -28,15 +28,22 @@ Abre tu terminal y clona el proyecto de GitHub: git clone [URL_DEL_REPOSITORIO] 
 
 
 Paso 2: Configurar el Entorno Virtual (venv)  
+
+
 Es una buena práctica de Python aislar las dependencias del proyecto.  
 
 
 Crear el Entorno Virtual: python3 -m venv .venv
+
+
 Activar el Entorno : source .venv/bin/activate
 
 
 (Tu terminal debería mostrar (.venv) al inicio del prompt, indicando que está activo.)  
-Paso 3: Instalar DependenciasInstala todas las bibliotecas necesarias (principalmente numpy) listadas en requirements.txt: pip install -r requirements.txt  
+
+
+Paso 3: Instalar DependenciasInstala todas las bibliotecas necesarias (principalmente numpy) listadas 
+en requirements.txt: pip install -r requirements.txt  
 
 
 Paso 4: ¡Ejecutar el Juego!  
