@@ -6,21 +6,19 @@ import random
 class Tablero:
     """
     Clase que gestiona el estado del tablero de un jugador en Batalla Naval.
-
-    Atributos:
-        id_jugador (str): Identificador del jugador ('Player' o 'AI').
-        tablero_privado (np.array): Tablero 10x10 que contiene la posición real de los barcos.
-        tablero_publico (np.array): Tablero 10x10 que muestra los resultados de los disparos del oponente.
-        barcos (list): Lista con las esloras de los barcos a colocar.
     """
     def __init__(self, id_jugador):
-        """
-        Inicializa un objeto Tablero para un jugador específico.
-        """
         self.id_jugador = id_jugador
-        self.tablero_privado = np.full((var.TAMANO_TABLERO, var.TAMANO_TABLERO), var.AGUA)
-        self.tablero_publico = np.full((var.TAMANO_TABLERO, var.TAMANO_TABLERO), var.AGUA)
+        # Inicializamos las matrices usando el Enum Estado.AGUA
+        self.tablero_privado = np.full((var.TAMANO_TABLERO, var.TAMANO_TABLERO), var.Estado.AGUA)
+        self.tablero_publico = np.full((var.TAMANO_TABLERO, var.TAMANO_TABLERO), var.Estado.AGUA)
         self.barcos = var.LISTA_BARCOS.copy()
+        
+        # --- Atributos para IA y Detección de Hundimiento ---
+        self.registro_barcos = {}  
+        self.barco_id_counter = var.BARCO_ID_INICIO 
+        self.objetivo_impactado = None
+        self.proximos_disparos = []
 
     def inicializar_barcos(self):
         """
@@ -44,70 +42,121 @@ class Tablero:
         if orientacion == "H":
             if x + eslora > var.TAMANO_TABLERO:
                 return False
-            return np.all(self.tablero_privado[y, x:x+eslora] == var.AGUA)
+            # Comprobamos contra var.Estado.AGUA
+            return np.all(self.tablero_privado[y, x:x+eslora] == var.Estado.AGUA)
         else: # "V"
             if y + eslora > var.TAMANO_TABLERO:
                 return False
-            return np.all(self.tablero_privado[y:y+eslora, x] == var.AGUA)
+            return np.all(self.tablero_privado[y:y+eslora, x] == var.Estado.AGUA)
 
     def _colocar(self, x, y, eslora, orientacion):
         """
-        Coloca un barco en el tablero privado.
+        Coloca un barco en el tablero privado y lo registra con un ID único.
         """
+        barco_id = self.barco_id_counter
+        coordenadas = set()
+
         if orientacion == "H":
-            self.tablero_privado[y, x:x+eslora] = var.BARCO
+            for i in range(eslora):
+                self.tablero_privado[y, x + i] = barco_id
+                coordenadas.add((x + i, y))
         else: # "V"
-            self.tablero_privado[y:y+eslora, x] = var.BARCO
+            for i in range(eslora):
+                self.tablero_privado[y + i, x] = barco_id
+                coordenadas.add((x, y + i))
+
+        self.registro_barcos[barco_id] = {
+            'eslora': eslora, 
+            'coordenadas': coordenadas, 
+            'impactos': set(),
+            'hundido': False
+        }
+        self.barco_id_counter += 1
 
     def recibir_disparo(self, x, y):
         """
-        Registra un disparo en el tablero y actualiza el estado.
-
-        Devuelve:
-            - True: Si es un impacto.
-            - False: Si es agua.
-            - None: Si la casilla ya había sido disparada.
+        Registra un disparo, comprueba si es un hundimiento y actualiza el estado.
+        Devuelve: (es_impacto, eslora_hundido) o None.
         """
-        casilla_actual = self.tablero_privado[y, x]
+        casilla_id = self.tablero_privado[y, x]
 
-        if casilla_actual == var.BARCO:
-            self.tablero_privado[y, x] = var.IMPACTO
-            self.tablero_publico[y, x] = var.IMPACTO
-            return True  # Impacto
-        elif casilla_actual == var.AGUA:
-            self.tablero_privado[y, x] = var.FALLO
-            self.tablero_publico[y, x] = var.FALLO
-            return False  # Agua
-        elif casilla_actual in (var.IMPACTO, var.FALLO):
-            return None  # Disparo repetido
+        # 1. CASILLA YA DISPARADA (IMPACTO, FALLO, HUNDIDO)
+        # Usamos el Enum para verificar si la casilla ya fue atacada
+        if casilla_id in (var.Estado.IMPACTO, var.Estado.FALLO, var.Estado.HUNDIDO):
+            return None  
+        
+        # 2. CASILLA AGUA
+        if casilla_id == var.Estado.AGUA:
+            self.tablero_privado[y, x] = var.Estado.FALLO
+            self.tablero_publico[y, x] = var.Estado.FALLO
+            return (False, None) 
+
+        # 3. CASILLA BARCO (Es un ID de barco)
+        if casilla_id in self.registro_barcos:
+            
+            # Marcar el impacto
+            self.tablero_privado[y, x] = var.Estado.IMPACTO 
+            self.tablero_publico[y, x] = var.Estado.IMPACTO
+            
+            barco = self.registro_barcos[casilla_id]
+            barco['impactos'].add((x, y))
+
+            # Comprobar Hundimiento
+            if len(barco['impactos']) == barco['eslora']:
+                barco['hundido'] = True
+                
+                # Marcar todas las coordenadas del barco como HUNDIDO
+                for bx, by in barco['coordenadas']:
+                    self.tablero_privado[by, bx] = var.Estado.HUNDIDO
+                    self.tablero_publico[by, bx] = var.Estado.HUNDIDO
+                
+                return (True, barco['eslora'])
+            
+            return (True, None)
+
 
     def comprobar_victoria(self):
         """
         Comprueba si todos los barcos del jugador han sido hundidos.
-
-        Devuelve:
-            - True: Si no quedan barcos a flote.
-            - False: Si todavía quedan barcos.
         """
-        return not np.any(self.tablero_privado == var.BARCO)
+        return all(barco['hundido'] for barco in self.registro_barcos.values())
 
     def mostrar_tablero(self, tipo_vista='publico'):
         """
-        Muestra el tablero en consola con un formato legible.
+        Muestra el tablero en consola con un formato legible y alineado.
         """
-        # Mapeo de valores numéricos a caracteres para visualización
+        # Mapeo de valores Enums a caracteres
         mapa_simbolos = {
-            var.AGUA: "~",
-            var.BARCO: "B",
-            var.IMPACTO: "X",
-            var.FALLO: "O"
+            var.Estado.AGUA: "🌊 ",
+            var.Estado.IMPACTO: "💥 ", 
+            var.Estado.FALLO: "⚫ ",
+            var.Estado.HUNDIDO: "🔥 " 
         }
-
+        
         tablero_a_mostrar = self.tablero_publico if tipo_vista == 'publico' else self.tablero_privado
 
-        print(f"  {' '.join(map(str, range(var.TAMANO_TABLERO)))}") # Cabecera de columnas
+        # 1. CABECERA DE COLUMNAS
+        cabecera_indices = "  " + " ".join([str(n).center(2) for n in range(var.TAMANO_TABLERO)])
+        print(cabecera_indices)
+        
+        # 2. IMPRIMIR FILAS
         for i, fila in enumerate(tablero_a_mostrar):
-            linea = f"{i} "
+            linea = f"{str(i).ljust(2)}"
             for celda in fila:
-                linea += f"{mapa_simbolos.get(celda, '?')} "
+                
+                # Mapeo directo para estados (AGUA, IMPACTO, FALLO, HUNDIDO)
+                # Al ser IntEnum, celda funciona como clave perfectamente
+                simbolo = mapa_simbolos.get(celda)
+                
+                # LÓGICA DE CORRECCIÓN CRÍTICA:
+                if simbolo is None:
+                    # Si el valor no es un estado (es un ID de barco intacto),
+                    # Solo lo mostramos en el tablero privado.
+                    if tipo_vista == 'privado':
+                        simbolo = "🚢 "
+                    # En el tablero público, este ID no se ha atacado, así que es AGUA.
+                    else: 
+                        simbolo = "🌊 "
+                
+                linea += simbolo
             print(linea.strip())
